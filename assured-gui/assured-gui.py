@@ -3,7 +3,7 @@ from gi.repository import Gtk, GLib, GObject
 import threading, os, subprocess, atexit
 import requests
 
-import restclient
+import restclient, addtag
 
 class AssuredWindow(Gtk.Window):
     client = restclient.RestClient('http://localhost:5000/assured/api/v1.0/')
@@ -25,7 +25,6 @@ class AssuredWindow(Gtk.Window):
         nfc_page.add(self.uid_label)
 
         self.store = Gtk.ListStore(int, str, str, bool, bool)
-        self.store.append([1, "Boris", "01f7d659", True, False])
         tags_view = Gtk.TreeView(self.store)
         rend = Gtk.CellRendererText()
         columns = [Gtk.TreeViewColumn("ID", Gtk.CellRendererText(), text=0),
@@ -38,10 +37,13 @@ class AssuredWindow(Gtk.Window):
 
         refresh = Gtk.Button.new_with_label("Refresh")
         refresh.connect("clicked", self.refresh_tags)
-
+        add = Gtk.Button.new_with_label("Add entry")
+        add.connect("clicked", self.add_tag)
+        
         server_btnbox = Gtk.HButtonBox()
         server_btnbox.add(refresh)
-            
+        server_btnbox.add(add)
+        
         server_page = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
         server_page.set_border_width(10)
         server_page.add(tags_view)
@@ -60,6 +62,8 @@ class AssuredWindow(Gtk.Window):
         nfc_worker = threading.Thread(target=self.poll)
         nfc_worker.daemon = True
         nfc_worker.start()
+
+        self.refresh_tags()
         atexit.register(self.cleanup)
         
     def poll(self):
@@ -101,8 +105,9 @@ class AssuredWindow(Gtk.Window):
                 dialog.format_secondary_text("You may not enter Room 1.")
             dialog.run()
             dialog.destroy()
+            self.refresh_tags()
 
-    def refresh_tags(self, button):
+    def refresh_tags(self, button=None):
         tags = self.client.tags_list()
         self.store.clear()
         for tag in tags:
@@ -111,8 +116,28 @@ class AssuredWindow(Gtk.Window):
                                tag['uid'],
                                tag['access_room1'],
                                tag['inside_room1']])
-            print tag
-        
+
+    def add_tag(self, button):
+        dialog = addtag.AddTagDialog(self, self.uid_label.get_text())
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print "OK pressed"
+            print "Name: " + dialog.name_entry.get_text()
+            print "Allowed in room1: " + str(dialog.access_room1.get_active())
+            try:
+                self.client.new_tag(dialog.name_entry.get_text(),
+                                    self.uid_label.get_text(),
+                                    dialog.access_room1.get_active())
+            except restclient.ApiError:
+                error_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
+                                                 Gtk.ButtonsType.OK,
+                                                 "Bad request")
+                error_dialog.run()
+                error_dialog.destroy()
+            self.refresh_tags()
+            
+        dialog.destroy()
+            
     def cleanup(self):
         self.nfcp.terminate()
 

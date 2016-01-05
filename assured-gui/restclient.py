@@ -7,13 +7,13 @@ class RestClient():
     
     def make_req(self, path, method=requests.get):
         resp = method(os.path.join(self.api_url, path))
-        if resp.status_code != 200:
+        if resp.status_code not in [200, 201]:
             raise ApiError('GET {} {}'.format(path, resp.status_code))
         return resp.json()
 
     def make_req_json(self, path, data, method=requests.get):
         resp = method(os.path.join(self.api_url, path), json=data)
-        if resp.status_code != 200:
+        if resp.status_code not in [200, 201]:
             raise ApiError('GET {} {}'.format(path, resp.status_code))
         return resp.json()
 
@@ -30,6 +30,12 @@ class RestClient():
         self.make_req_json('tags/{}'.format(previous['id']),
                            json,
                            requests.put)
+
+    def new_tag(self, name, uid, access_room1):
+        json = {'name': name,
+                'uid':  uid,
+                'access_room1': access_room1}
+        return self.make_req_json('tags', json, requests.post)
 
 class ApiError(Exception):
     pass

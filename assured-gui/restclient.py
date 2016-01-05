@@ -37,5 +37,8 @@ class RestClient():
                 'access_room1': access_room1}
         return self.make_req_json('tags', json, requests.post)
 
+    def del_tag(self, db_id):
+        return self.make_req('tags/{}'.format(db_id), requests.delete)
+
 class ApiError(Exception):
     pass

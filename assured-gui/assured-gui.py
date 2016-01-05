@@ -25,7 +25,7 @@ class AssuredWindow(Gtk.Window):
         nfc_page.add(self.uid_label)
 
         self.store = Gtk.ListStore(int, str, str, bool, bool)
-        tags_view = Gtk.TreeView(self.store)
+        self.tags_view = Gtk.TreeView(self.store)
         rend = Gtk.CellRendererText()
         columns = [Gtk.TreeViewColumn("ID", Gtk.CellRendererText(), text=0),
                    Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=1),
@@ -33,20 +33,26 @@ class AssuredWindow(Gtk.Window):
                    Gtk.TreeViewColumn("Allowed in?", Gtk.CellRendererToggle(), active=3),
                    Gtk.TreeViewColumn("Inside?", Gtk.CellRendererToggle(), active=4)]
         for column in columns:
-            tags_view.append_column(column)
+            self.tags_view.append_column(column)
+        select = self.tags_view.get_selection()
+        select.connect("changed", self.on_selection_change)
 
         refresh = Gtk.Button.new_with_label("Refresh")
         refresh.connect("clicked", self.refresh_tags)
         add = Gtk.Button.new_with_label("Add entry")
         add.connect("clicked", self.add_tag)
+        self.delete_btn = Gtk.Button.new_with_label("Delete tag")
+        self.delete_btn.set_sensitive(False)
+        self.delete_btn.connect("clicked", self.delete_tag)
         
         server_btnbox = Gtk.HButtonBox()
         server_btnbox.add(refresh)
+        server_btnbox.add(self.delete_btn)
         server_btnbox.add(add)
         
         server_page = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
         server_page.set_border_width(10)
-        server_page.add(tags_view)
+        server_page.add(self.tags_view)
         server_page.add(server_btnbox)
 
         admin_nb = Gtk.Notebook()
@@ -81,18 +87,9 @@ class AssuredWindow(Gtk.Window):
             resp = self.client.auth_tag(uid)['tag']
             self
         except requests.exceptions.ConnectionError as e:
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR,
-                                       Gtk.ButtonsType.OK,
-                                       "Error connecting to server")
-            dialog.format_secondary_text(str(e))
-            dialog.run()
-            dialog.destroy()
+            self.error_dlg("Error connecting to server", str(e))
         except restclient.ApiError:
-            dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
-                                       Gtk.ButtonsType.OK,
-                                       "User not found in database")
-            dialog.run()
-            dialog.destroy()
+            self.error_dlg("User not found in database")
         else:
             dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
                                        Gtk.ButtonsType.OK,
@@ -121,23 +118,43 @@ class AssuredWindow(Gtk.Window):
         dialog = addtag.AddTagDialog(self, self.uid_label.get_text())
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            print "OK pressed"
-            print "Name: " + dialog.name_entry.get_text()
-            print "Allowed in room1: " + str(dialog.access_room1.get_active())
             try:
                 self.client.new_tag(dialog.name_entry.get_text(),
                                     self.uid_label.get_text(),
                                     dialog.access_room1.get_active())
             except restclient.ApiError:
-                error_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
-                                                 Gtk.ButtonsType.OK,
-                                                 "Bad request")
-                error_dialog.run()
-                error_dialog.destroy()
+                self.error_dlg("Bad request")
             self.refresh_tags()
             
         dialog.destroy()
-            
+
+    def delete_tag(self, button):
+        selection = self.tags_view.get_selection()
+        model, tagiter = selection.get_selected()
+        if tagiter != None:
+            print "Delete tag", model[tagiter][0], ", Name:", model[tagiter][1]
+            try:
+                self.client.del_tag(model[tagiter][0])
+            except restclient.ApiError:
+                self.error_dlg("Bad request")
+            self.refresh_tags()
+
+    def on_selection_change(self, selection):
+        model, sel_iter = selection.get_selected()
+        if sel_iter is None:
+            self.delete_btn.set_sensitive(False)
+        else:
+            self.delete_btn.set_sensitive(True)
+
+    def error_dlg(error, secondary_text=None):
+        error_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
+                                         Gtk.ButtonsType.OK,
+                                         error)
+        if secondary_text is not None:
+            dialog.format_secondary_text(secondary_text)
+        error_dialog.run()
+        error_dialog.destroy()
+    
     def cleanup(self):
         self.nfcp.terminate()
 

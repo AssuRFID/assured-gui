@@ -1,0 +1,5 @@
+*~
+.*.sw*
+assured-gui/assured-nfc
+\#*\#
+*.pyc

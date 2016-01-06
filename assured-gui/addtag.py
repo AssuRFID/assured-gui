@@ -7,11 +7,9 @@ class AddTagDialog(Gtk.Dialog):
                              Gtk.STOCK_OK, Gtk.ResponseType.OK))
         self.set_default_size(150, 300)
 
-        label = Gtk.Label("Ello")
-
-        self.uid = "7357"
         grid = Gtk.Grid()
         grid.set_row_homogeneous(True)
+        grid.set_column_spacing(12)
 
         grid.add(Gtk.Label("Name", halign=Gtk.Align.END))
         self.name_entry = Gtk.Entry()
@@ -26,4 +24,5 @@ class AddTagDialog(Gtk.Dialog):
         
         box = self.get_content_area()
         box.add(grid)
+        box.set_border_width(18)
         self.show_all()

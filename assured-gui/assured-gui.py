@@ -6,7 +6,7 @@ import requests
 import restclient, addtag
 
 class AssuredWindow(Gtk.Window):
-    client = restclient.RestClient('http://localhost:5000/assured/api/v1.0/')
+    client = restclient.RestClient('http://localhost/assured/api/v1.0/')
     def __init__(self):
         Gtk.Window.__init__(self, title="Assured GUI")
 

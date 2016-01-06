@@ -52,6 +52,7 @@ class AssuredWindow(Gtk.Window):
         self.delete_btn.connect("clicked", self.delete_tag)
         
         server_btnbox = Gtk.HButtonBox()
+        server_btnbox.set_layout(Gtk.ButtonBoxStyle.CENTER)
         server_btnbox.add(refresh)
         server_btnbox.add(self.delete_btn)
         server_btnbox.add(add)
@@ -111,14 +112,18 @@ class AssuredWindow(Gtk.Window):
             self.refresh_tags()
 
     def refresh_tags(self, button=None):
-        tags = self.client.tags_list()
-        self.store.clear()
-        for tag in tags:
-            self.store.append([tag['id'],
-                               tag['name'],
-                               tag['uid'],
-                               tag['access_room1'],
-                               tag['inside_room1']])
+        try:
+            tags = self.client.tags_list()
+        except requests.exceptions.ConnectionError:
+            self.error_dlg("Failed to connect to server")
+        else:
+            self.store.clear()
+            for tag in tags:
+                self.store.append([tag['id'],
+                                   tag['name'],
+                                   tag['uid'],
+                                   tag['access_room1'],
+                                   tag['inside_room1']])
 
     def add_tag(self, button):
         dialog = addtag.AddTagDialog(self, self.uid_label.get_text())
@@ -138,7 +143,6 @@ class AssuredWindow(Gtk.Window):
         selection = self.tags_view.get_selection()
         model, tagiter = selection.get_selected()
         if tagiter != None:
-            print "Delete tag", model[tagiter][0], ", Name:", model[tagiter][1]
             try:
                 self.client.del_tag(model[tagiter][0])
             except restclient.ApiError:
@@ -162,7 +166,7 @@ class AssuredWindow(Gtk.Window):
         self.client.update_tag(self.store[listiter][0], access_room1=(not self.store[listiter][3]))
         self.refresh_tags()
             
-    def error_dlg(error, secondary_text=None):
+    def error_dlg(self, error, secondary_text=None):
         error_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
                                          Gtk.ButtonsType.OK,
                                          error)

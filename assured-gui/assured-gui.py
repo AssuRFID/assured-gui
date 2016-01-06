@@ -50,6 +50,8 @@ class AssuredWindow(Gtk.Window):
         self.delete_btn = Gtk.Button.new_with_label("Delete tag")
         self.delete_btn.set_sensitive(False)
         self.delete_btn.connect("clicked", self.delete_tag)
+        delete_style = self.delete_btn.get_style_context()
+        delete_style.add_class('destructive-action')
         
         server_btnbox = Gtk.HButtonBox()
         server_btnbox.set_layout(Gtk.ButtonBoxStyle.CENTER)

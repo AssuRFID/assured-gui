@@ -40,5 +40,12 @@ class RestClient():
     def del_tag(self, db_id):
         return self.make_req('tags/{}'.format(db_id), requests.delete)
 
+    def update_tag(self, db_id, **kwargs):
+        json = {}
+        for kw in kwargs.keys():
+            if kw in ['name', 'uid', 'access_room1']:
+                json[kw] = kwargs[kw]
+        return self.make_req_json('tags/{}'.format(db_id), json, requests.put)
+
 class ApiError(Exception):
     pass

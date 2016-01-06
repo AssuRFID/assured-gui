@@ -26,11 +26,17 @@ class AssuredWindow(Gtk.Window):
 
         self.store = Gtk.ListStore(int, str, str, bool, bool)
         self.tags_view = Gtk.TreeView(self.store)
-        rend = Gtk.CellRendererText()
+        
+        name_rend = Gtk.CellRendererText()
+        name_rend.connect('edited', self.name_edited)
+        name_rend.set_property('editable', True)
+        access_rend = Gtk.CellRendererToggle()
+        access_rend.connect('toggled', self.access_toggled)
+        access_rend.set_property('activatable', True)
         columns = [Gtk.TreeViewColumn("ID", Gtk.CellRendererText(), text=0),
-                   Gtk.TreeViewColumn("Name", Gtk.CellRendererText(), text=1),
+                   Gtk.TreeViewColumn("Name", name_rend, text=1),
                    Gtk.TreeViewColumn("UID", Gtk.CellRendererText(), text=2),
-                   Gtk.TreeViewColumn("Allowed in?", Gtk.CellRendererToggle(), active=3),
+                   Gtk.TreeViewColumn("Allowed in?", access_rend, active=3),
                    Gtk.TreeViewColumn("Inside?", Gtk.CellRendererToggle(), active=4)]
         for column in columns:
             self.tags_view.append_column(column)
@@ -146,6 +152,16 @@ class AssuredWindow(Gtk.Window):
         else:
             self.delete_btn.set_sensitive(True)
 
+    def name_edited(self, rend, row, new_text):
+        listiter = self.store.get_iter(row)
+        self.client.update_tag(self.store[listiter][0], name=new_text)
+        self.refresh_tags()
+
+    def access_toggled(self, rend, row):
+        listiter = self.store.get_iter(row)
+        self.client.update_tag(self.store[listiter][0], access_room1=(not self.store[listiter][3]))
+        self.refresh_tags()
+            
     def error_dlg(error, secondary_text=None):
         error_dialog = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING,
                                          Gtk.ButtonsType.OK,

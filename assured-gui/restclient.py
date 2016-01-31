@@ -18,14 +18,14 @@ class RestClient():
         return resp.json()
 
     def tags_list(self):
-        return self.make_req('tags')['tags']
+        return self.make_req('tags')
 
     def auth_tag(self, uid):
         json = {"uid": uid}
         return self.make_req_json('tags/auth', json)
 
     def tag_move(self, uid):
-        previous = self.auth_tag(uid)['tag']
+        previous = self.auth_tag(uid)
         json = {"inside_room1": not previous['inside_room1']}
         self.make_req_json('tags/{}'.format(previous['id']),
                            json,

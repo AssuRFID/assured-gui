@@ -1,13 +1,13 @@
 #!/usr/bin/python
 from gi.repository import Gtk, GLib, GObject
-import threading, os, subprocess, atexit
+import threading, os, subprocess, atexit, sys
 import requests
 
 import restclient, addtag
 
 class AssuredWindow(Gtk.Window):
-    client = restclient.RestClient('http://localhost/assured/api/v1.0/')
-    def __init__(self):
+    def __init__(self, assured_url):
+        self.client = restclient.RestClient(url)
         Gtk.Window.__init__(self, title="Assured GUI")
 
         self.set_size_request(600, 800)
@@ -45,8 +45,10 @@ class AssuredWindow(Gtk.Window):
 
         refresh = Gtk.Button.new_with_label("Refresh")
         refresh.connect("clicked", self.refresh_tags)
-        add = Gtk.Button.new_with_label("Add entry")
-        add.connect("clicked", self.add_tag)
+        self.add_btn = Gtk.Button.new_with_label("Add tag")
+        self.add_btn.set_sensitive(False)
+        self.add_btn.connect("clicked", self.add_tag)
+        
         self.delete_btn = Gtk.Button.new_with_label("Delete tag")
         self.delete_btn.set_sensitive(False)
         self.delete_btn.connect("clicked", self.delete_tag)
@@ -57,7 +59,7 @@ class AssuredWindow(Gtk.Window):
         server_btnbox.set_layout(Gtk.ButtonBoxStyle.CENTER)
         server_btnbox.add(refresh)
         server_btnbox.add(self.delete_btn)
-        server_btnbox.add(add)
+        server_btnbox.add(self.add_btn)
         
         server_page = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
         server_page.set_border_width(10)
@@ -92,8 +94,9 @@ class AssuredWindow(Gtk.Window):
     # Called when a new tag is scanned
     def update_uid(self, uid):
         self.uid_label.set_text(uid)
+        self.add_btn.set_sensitive(True)
         try:
-            resp = self.client.auth_tag(uid)['tag']
+            resp = self.client.auth_tag(uid)
             self
         except requests.exceptions.ConnectionError as e:
             self.error_dlg("Error connecting to server", str(e))
@@ -180,7 +183,12 @@ class AssuredWindow(Gtk.Window):
     def cleanup(self):
         self.nfcp.terminate()
 
-win = AssuredWindow()
+if len(sys.argv) >= 2:
+    url = sys.argv[1]
+else:
+    url = 'http://localhost/assured/api/v1.0/'
+            
+win = AssuredWindow(url)
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
